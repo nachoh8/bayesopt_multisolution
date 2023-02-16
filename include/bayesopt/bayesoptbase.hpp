@@ -144,6 +144,8 @@ namespace bayesopt {
     vectord getFinalResult(bool useMean = false);
     double getFinalValue(bool useMean = false);
 
+    void getFinalResults(vecOfvec& points, vectord& values, bool useMean = false);
+
     /** Saves the current state of the optimization process into a state class. */
     void saveOptimization(BOptState &state);
 

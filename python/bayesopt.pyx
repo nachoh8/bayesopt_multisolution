@@ -151,6 +151,11 @@ cdef extern from "bayesopt/bayesopt.h":
                            double *lb, double *ub, double *x,
                            double *minf,
                            bopt_params params)
+    
+    int parallel_multisolution_bayes_optimization(int nDim, multi_eval_func f, void* f_data,
+				      const double *lb, const double *ub,
+				      double *x, double *minf, double* solutions, double* values,
+				      bopt_params parameters)
 
     int bayes_optimization_log(int nDim, eval_func f, void* f_data,
                                double *lb, double *ub, double *x,
@@ -375,13 +380,48 @@ def optimize_parallel(f, int nDim, np.ndarray[np.double_t] np_lb,
     error_code = parallel_bayes_optimization(nDim, callback_parallel, <void *> f,
                                     &lb[0], &ub[0], &x[0], minf, params)
 
-    
     Py_DECREF(f)
 
     raise_problem(error_code)
     
     min_value = minf[0]
     return min_value,np_x,error_code
+
+def optimize_parallel_multisolution(f, int nDim, np.ndarray[np.double_t] np_lb,
+             np.ndarray[np.double_t] np_ub, dict dparams):
+
+    cdef bopt_params params = dict2structparams(dparams)
+    cdef double minf[1]
+    cdef np.ndarray np_x = np.ones([nDim], dtype=np.double)*0.5
+
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] lb
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] ub
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] x
+
+    lb = np.ascontiguousarray(np_lb,dtype=np.double)
+    ub = np.ascontiguousarray(np_ub,dtype=np.double)
+    x  = np.ascontiguousarray(np_x,dtype=np.double)
+
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] solutions
+    cdef np.ndarray[np.double_t, ndim=1, mode="c"] sols_value
+
+    cdef np.ndarray np_solutions = np.ones([params.num_solutions * nDim], dtype=np.double)*0.5
+    cdef np.ndarray np_sols_value = np.ones([params.num_solutions], dtype=np.double)*0.5
+
+    solutions  = np.ascontiguousarray(np_solutions,dtype=np.double)
+    sols_value  = np.ascontiguousarray(np_sols_value,dtype=np.double)
+
+    Py_INCREF(f)
+
+    error_code = parallel_multisolution_bayes_optimization(nDim, callback_parallel, <void *> f,
+                                    &lb[0], &ub[0], &x[0], minf, &solutions[0], &sols_value[0], params)
+    
+    Py_DECREF(f)
+
+    raise_problem(error_code)
+    
+    min_value = minf[0]
+    return min_value,np_x, np_solutions, np_sols_value, error_code
 
 def optimize_log(f, int nDim, np.ndarray[np.double_t] np_lb,
              np.ndarray[np.double_t] np_ub, bytes filename, dict dparams):

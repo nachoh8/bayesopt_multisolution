@@ -82,6 +82,11 @@ extern "C" {
 				      const double *lb, const double *ub,
 				      double *x, double *minf,
 				      bopt_params parameters);
+   
+   BAYESOPT_API int parallel_multisolution_bayes_optimization(int nDim, multi_eval_func f, void* f_data,
+				      const double *lb, const double *ub,
+				      double *x, double *minf, double* solutions, double* values,
+				      bopt_params parameters);
 
 /** 
  * @brief C wrapper for the Bayesian optimization algorithm.  

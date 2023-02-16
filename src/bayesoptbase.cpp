@@ -498,6 +498,7 @@ namespace bayesopt
         const bool isBBO = mParameters.par_type == PAR_MCMC; // TODO: set this param from parameters
         const bool divfEnabled = mParameters.diversity_level > 0.0;
         const bool multiSolsEnabled = mParameters.num_solutions > 1;
+        const bool e_mebo = mParameters.diversity_level == 0.0; // TODO cambiar
 
         bool explorative_sampling, default_sampling;
         if (multiSolsEnabled) {
@@ -528,7 +529,7 @@ namespace bayesopt
             }
             
           } else {
-            explorative_sampling = c1 <= c2*0.4 || ((mCurrentIter+1) % 3 == 0 && c1 >= c2*0.5);
+            explorative_sampling = e_mebo && (c1 <= c2*0.4 || ((mCurrentIter+1) % 3 == 0 && c1 >= c2*0.5));
             cluster_sampling = false;
             default_sampling = true;
           }
@@ -883,6 +884,20 @@ namespace bayesopt
       {
         return getValueAtMinimum();
       }
+  }
+
+
+  void BayesOptBase::getFinalResults(vecOfvec& points, vectord& values, bool useMean) {
+    if (mParameters.num_solutions > 1 && mParameters.diversity_level > 0.0) {
+      // TODO
+      for (size_t i = 0; i < mParameters.num_solutions; i++) {
+        points.push_back(getFinalResult());
+      }
+      values = vectord(mParameters.num_solutions, getFinalValue());
+    } else {
+      points.push_back(getFinalResult());
+      values = vectord(1, getFinalValue());
+    }
   }
 
   // SAVE-RESTORE INTERFACE

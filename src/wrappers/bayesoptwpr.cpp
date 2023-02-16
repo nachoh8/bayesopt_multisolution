@@ -246,6 +246,66 @@ int parallel_bayes_optimization(int nDim, multi_eval_func f, void* f_data,
 };
 
 
+int parallel_multisolution_bayes_optimization(int nDim, multi_eval_func f, void* f_data,
+				      const double *lb, const double *ub,
+				      double *x, double *minf, double* solutions, double* values,
+				      bopt_params parameters)
+{
+  vectord result(nDim);
+
+  vectord lowerBound = bayesopt::utils::array2vector(lb,nDim); 
+  vectord upperBound = bayesopt::utils::array2vector(ub,nDim); 
+
+  try 
+    {
+      CContinuousParallelModel optimizer(nDim, parameters);
+
+      optimizer.set_eval_funct(f);
+      optimizer.save_other_data(f_data);
+      optimizer.setBoundingBox(lowerBound,upperBound);
+
+      optimizer.optimize(result);
+      std::copy(result.begin(), result.end(), x);
+
+      *minf = optimizer.getValueAtMinimum();
+      
+      vecOfvec _solutions;
+      vectord _values;
+      optimizer.getFinalResults(_solutions, _values);
+
+      vectord _plain_solutions(_solutions.size() * nDim);
+      for (size_t i = 0; i < _solutions.size(); i++) {
+        for (size_t j = 0; j < nDim; j++) {
+          _plain_solutions[i*nDim+j] = _solutions[i][j];
+        } 
+      }
+
+      std::copy(_plain_solutions.begin(), _plain_solutions.end(), solutions);
+      std::copy(_values.begin(), _values.end(), values);
+    }
+  catch (std::bad_alloc& e)
+    {
+      FILE_LOG(logERROR) << e.what(); 
+      return  BAYESOPT_OUT_OF_MEMORY; 
+    }
+  catch (std::invalid_argument& e)
+    { 
+      FILE_LOG(logERROR) << e.what(); 
+      return BAYESOPT_INVALID_ARGS; 
+    }
+  catch (std::runtime_error& e)
+    { 
+      FILE_LOG(logERROR) << e.what(); 
+      return BAYESOPT_RUNTIME_ERROR;
+    }
+  catch (...)
+    { 
+      FILE_LOG(logERROR) << "Unknown error";
+      return BAYESOPT_FAILURE; 
+    }
+  return 0; /* everything ok*/
+}
+
 int bayes_optimization_log(int nDim, eval_func f, void* f_data,
 			   const double *lb, const double *ub,
 			   double *x, double *minf, 

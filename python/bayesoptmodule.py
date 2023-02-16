@@ -120,10 +120,18 @@ class BayesOptContinuous(object):
     def optimize(self):
         try:
             if "par_type" in self.params and (self.params["par_type"] == "PAR_BBO" or self.params["par_type"] == "PAR_MCMC"):
-                min_val, x_out, error = bo.optimize_parallel(self.tryEvaluateSamples, 
-                                                self.n_dim,
-                                                self.lb, self.ub,
-                                                self.params)
+                if "num_solutions" in self.params and "diversity_level" in self.params and self.params["num_solutions"] > 1 and self.params["diversity_level"] > 0.0:
+                    min_val, min_x, solutions, sols_value, error = bo.optimize_parallel_multisolution(self.tryEvaluateSamples, 
+                                                    self.n_dim,
+                                                    self.lb, self.ub,
+                                                    self.params)
+                    
+                    return min_val, min_x, solutions.reshape(self.params["num_solutions"], self.n_dim), sols_value
+                else:
+                    min_val, x_out, error = bo.optimize_parallel(self.tryEvaluateSamples, 
+                                                    self.n_dim,
+                                                    self.lb, self.ub,
+                                                    self.params)
             else:
                 if self._logfile is None:
                     min_val, x_out, error = bo.optimize(self.tryEvaluateSample, 
